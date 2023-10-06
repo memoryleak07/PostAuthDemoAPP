@@ -1,4 +1,4 @@
-﻿namespace JwtWebApiDotNet7.Models
+﻿namespace WebApiDemoApp.Models
 {
     public class UserDto
     {

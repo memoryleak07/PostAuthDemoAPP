@@ -1,14 +1,11 @@
-﻿using JwtWebApiDotNet7.Models;
-using JwtWebApiDotNet7.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using WebApiDemoApp.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace JwtWebApiDotNet7.Controllers
+namespace WebApiDemoApp.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -16,29 +13,12 @@ namespace JwtWebApiDotNet7.Controllers
     {
         public static User user = new User();
         private readonly IConfiguration _configuration;
-        private readonly IUserService _userService;
 
-        public AuthController(IConfiguration configuration, IUserService userService)
+        public AuthController(IConfiguration configuration)
         {
             _configuration = configuration;
-            _userService = userService;
         }
-
-        [HttpGet, Authorize]
-        public ActionResult<string> GetMyName()
-        {
-            return Ok(_userService.GetMyName());
-
-            //var userName = User?.Identity?.Name;
-            //var roleClaims = User?.FindAll(ClaimTypes.Role);
-            //var roles = roleClaims?.Select(c => c.Value).ToList();
-            //var roles2 = User?.Claims
-            //    .Where(c => c.Type == ClaimTypes.Role)
-            //    .Select(c => c.Value)
-            //    .ToList();
-            //return Ok(new { userName, roles, roles2 });
-        }
-
+        // Signup
         [HttpPost("register")]
         public ActionResult<User> Register(UserDto request)
         {
@@ -46,22 +26,18 @@ namespace JwtWebApiDotNet7.Controllers
                 = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
             user.Username = request.Username;
-            user.PasswordHash = passwordHash;
+            user.Password = passwordHash;
 
             return Ok(user);
         }
-
+        // Login
         [HttpPost("login")]
         public ActionResult<User> Login(UserDto request)
         {
-            if (user.Username != request.Username)
+            if (user.Username != request.Username || 
+                (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password)))
             {
-                return BadRequest("User not found.");
-            }
-
-            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            {
-                return BadRequest("Wrong password.");
+                return BadRequest("Wrong credentials.");
             }
 
             string token = CreateToken(user);
@@ -69,14 +45,15 @@ namespace JwtWebApiDotNet7.Controllers
             return Ok(token);
         }
 
+        // Create Token
         private string CreateToken(User user)
         {
+            // Create user with role User
             List<Claim> claims = new List<Claim> {
                 new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, "Admin"),
                 new Claim(ClaimTypes.Role, "User"),
             };
-
+            // Generate token from the app token
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
                 _configuration.GetSection("AppSettings:Token").Value!));
 
@@ -84,7 +61,7 @@ namespace JwtWebApiDotNet7.Controllers
 
             var token = new JwtSecurityToken(
                     claims: claims,
-                    expires: DateTime.Now.AddDays(1),
+                    expires: DateTime.Now.AddDays(15),
                     signingCredentials: creds
                 );
 

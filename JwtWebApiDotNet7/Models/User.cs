@@ -1,8 +1,9 @@
 ﻿namespace WebApiDemoApp.Models
 {
-    public class User
+    public class User : IdentityUser
     {
-        public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        //[ForeignKey("AuthorFK")]
+        public ICollection<Post> Posts { get; set; }
+
     }
 }

@@ -1,5 +1,4 @@
-﻿using WebApiDemoApp.Models;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -11,31 +10,46 @@ namespace WebApiDemoApp.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        public static User user = new User();
+        public static User user = new();
+        private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
 
-        public AuthController(IConfiguration configuration)
+        public AuthController(IConfiguration configuration, ApplicationDbContext context)
         {
             _configuration = configuration;
+            _context = context;
         }
         // Signup
         [HttpPost("register")]
-        public ActionResult<User> Register(UserDto request)
+        public async Task<ActionResult<User>> RegisterAsync(UserDTO request)
         {
-            string passwordHash
-                = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            // Check if already exists an user with same Username
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserName == request.UserName);
 
-            user.Username = request.Username;
-            user.Password = passwordHash;
+            if (existingUser != null)
+            {
+                return BadRequest("Username already exists.");
+            }
+            var user = new User
+            {
+                UserName = request.UserName,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.PasswordHash)
+            };
+
+            // Add the user to Db
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
 
             return Ok(user);
         }
         // Login
         [HttpPost("login")]
-        public ActionResult<User> Login(UserDto request)
+        public ActionResult<User> Login(UserDTO request)
         {
-            if (user.Username != request.Username || 
-                (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password)))
+            // Find the user
+            var user = _context.Users.FirstOrDefault(u => u.UserName == request.UserName);
+
+            if (user == null || !BCrypt.Net.BCrypt.Verify(request.PasswordHash, user.PasswordHash))
             {
                 return BadRequest("Wrong credentials.");
             }
@@ -49,8 +63,9 @@ namespace WebApiDemoApp.Controllers
         private string CreateToken(User user)
         {
             // Create user with role User
-            List<Claim> claims = new List<Claim> {
-                new Claim(ClaimTypes.Name, user.Username),
+            List<Claim> claims = new()
+            {
+                new Claim(ClaimTypes.Name, user.UserName),
                 new Claim(ClaimTypes.Role, "User"),
             };
             // Generate token from the app token

@@ -14,11 +14,13 @@ namespace WebApiDemoApp.Controllers
         public static User user = new();
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly UserManager<User> _userManager;
 
-        public AuthController(IConfiguration configuration, ApplicationDbContext context)
+        public AuthController(IConfiguration configuration, ApplicationDbContext context, UserManager<User> userManager)
         {
             _configuration = configuration;
             _context = context;
+            _userManager = userManager;
         }
         // Test method
         [HttpGet]
@@ -47,7 +49,15 @@ namespace WebApiDemoApp.Controllers
             // Add the user to Db
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+            // Assign Role
+            var roleResult = await _userManager.AddToRoleAsync(user, "Admin");
 
+            //var roleResult = await _userManager.AddToRoleAsync(user, "User");
+            if (!roleResult.Succeeded)
+            {
+                // Handle role assignment failure, if needed
+                return BadRequest("Failed to assign role to user.");
+            }
             return Ok(user);
         }
         // Login

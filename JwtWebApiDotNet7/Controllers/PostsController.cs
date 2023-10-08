@@ -16,6 +16,17 @@ namespace WebApiDemoApp.Controllers
             _context = context;
             _userManager = userManager;
         }
+        //Test Role
+        [HttpGet("TestRole")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult<IEnumerable<PostDTO>>> GetRole()
+        {
+            User? user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == HttpContext.User.Identity.Name.ToString());
+            var role = _userManager.GetRolesAsync(user);
+            
+            return Ok(role);
+        }
+
         // GET: api/Posts/
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PostDTO>>> GetAllPost()

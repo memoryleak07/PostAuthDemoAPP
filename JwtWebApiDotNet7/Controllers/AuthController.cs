@@ -34,7 +34,7 @@ namespace WebApiDemoApp.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<User>> RegisterAsync(UserDTO request)
         {
-            // Check if already exists an user with same Username
+            // Check if Username already exists
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserName == request.UserName);
             if (existingUser != null)
             {
@@ -50,9 +50,7 @@ namespace WebApiDemoApp.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
             // Assign Role
-            var roleResult = await _userManager.AddToRoleAsync(user, "Admin");
-
-            //var roleResult = await _userManager.AddToRoleAsync(user, "User");
+            var roleResult = await _userManager.AddToRoleAsync(user, "User");
             if (!roleResult.Succeeded)
             {
                 // Handle role assignment failure, if needed
@@ -71,18 +69,18 @@ namespace WebApiDemoApp.Controllers
                 return BadRequest("Wrong credentials.");
             }
 
-            string token = CreateToken(user);
+            string token = CreateToken(user, "User");
 
             return Ok(token);
         }
         // Create Token
-        private string CreateToken(User user)
+        private string CreateToken(User user, string role)
         {
             // Create user with role User
             List<Claim> claims = new()
             {
                 new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.Role, "User"),
+                new Claim(ClaimTypes.Role, role),
             };
             // Generate token from the app token
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(

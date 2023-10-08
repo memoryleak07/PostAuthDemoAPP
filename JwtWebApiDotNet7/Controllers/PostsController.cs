@@ -21,10 +21,25 @@ namespace WebApiDemoApp.Controllers
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult<IEnumerable<PostDTO>>> GetRole()
         {
-            User? user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == HttpContext.User.Identity.Name.ToString());
-            var role = _userManager.GetRolesAsync(user);
-            
-            return Ok(role);
+            // Get the current user
+            User? user = await GetUser();
+
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            // Check if the user is in the "Admin" role (or any other role you want to check)
+            bool isInAdminRole = await _userManager.IsInRoleAsync(user, "Admin");
+
+            if (isInAdminRole)
+            {
+                return Ok("User is in the 'Admin' role.");
+            }
+            else
+            {
+                return Ok("User is not in the 'Admin' role.");
+            }
         }
 
         // GET: api/Posts/
@@ -72,7 +87,7 @@ namespace WebApiDemoApp.Controllers
                 return NotFound();
             }
 
-            User? user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == HttpContext.User.Identity.Name.ToString());
+            User? user = await GetUser();
 
             // Update
             post.Title = postDTO.Title;
@@ -96,7 +111,7 @@ namespace WebApiDemoApp.Controllers
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult<PostDTO>> PostPost(PostDTO postDTO)
         {
-            User? user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == HttpContext.User.Identity.Name.ToString());
+            User? user = await GetUser();
             // Create PostItem obj
             var post = new Post
             {
@@ -176,6 +191,12 @@ namespace WebApiDemoApp.Controllers
             }
 
             return Ok(posts);
+        }
+
+        private async Task<User>? GetUser()
+        {
+            User? user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == HttpContext.User.Identity.Name.ToString());
+            return user;
         }
 
         private bool PostExists(long id)

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -19,13 +20,20 @@ namespace WebApiDemoApp.Controllers
             _configuration = configuration;
             _context = context;
         }
+        // Test method
+        [HttpGet]
+        [Route("TestAuth")]
+        [Authorize(Roles = "User", AuthenticationSchemes = "Bearer")]
+        public async Task<IActionResult> TestAuthorizationAsync()
+        {
+            return Ok("You're Authorized");
+        }
         // Signup
         [HttpPost("register")]
         public async Task<ActionResult<User>> RegisterAsync(UserDTO request)
         {
             // Check if already exists an user with same Username
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserName == request.UserName);
-
             if (existingUser != null)
             {
                 return BadRequest("Username already exists.");
@@ -48,7 +56,6 @@ namespace WebApiDemoApp.Controllers
         {
             // Find the user
             var user = _context.Users.FirstOrDefault(u => u.UserName == request.UserName);
-
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.PasswordHash, user.PasswordHash))
             {
                 return BadRequest("Wrong credentials.");
@@ -58,7 +65,6 @@ namespace WebApiDemoApp.Controllers
 
             return Ok(token);
         }
-
         // Create Token
         private string CreateToken(User user)
         {
@@ -71,15 +77,12 @@ namespace WebApiDemoApp.Controllers
             // Generate token from the app token
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
                 _configuration.GetSection("AppSettings:Token").Value!));
-
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
-
             var token = new JwtSecurityToken(
                     claims: claims,
                     expires: DateTime.Now.AddDays(15),
                     signingCredentials: creds
                 );
-
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
             return jwt;

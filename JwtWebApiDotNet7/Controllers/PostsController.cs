@@ -6,25 +6,16 @@ namespace WebApiDemoApp.Controllers
 
     [Route("api/[controller]")]
     [ApiController]
-    public class PostController : ControllerBase
+    public class PostsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
 
-        public PostController(ApplicationDbContext context, UserManager<User> userManager)
+        public PostsController(ApplicationDbContext context, UserManager<User> userManager)
         {
             _context = context;
             _userManager = userManager;
         }
-        // Test method
-        [Authorize(Roles = "User", AuthenticationSchemes = "Bearer")]
-        [HttpGet]
-        [Route("api/TestAuth")]
-        public async Task<IActionResult> TestAuthorizationAsync()
-        {
-            return Ok("You're Authorized");
-        }
-
         // GET: api/Posts/
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PostDTO>>> GetAllPost()
@@ -55,7 +46,7 @@ namespace WebApiDemoApp.Controllers
             return PostDTO(post);
         }
 
-        // PUT
+        // PUT: api/Posts/5
         [HttpPut("{id}")]
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<IActionResult> PutPost(long id, PostDTO postDTO)
@@ -89,7 +80,7 @@ namespace WebApiDemoApp.Controllers
             }
         }
 
-        // POST: api/Posts
+        // POST: api/Post
         [HttpPost]
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult<PostDTO>> PostPost(PostDTO postDTO)
@@ -113,7 +104,7 @@ namespace WebApiDemoApp.Controllers
                 PostDTO(post));
         }
 
-        // DELETE
+        // DELETE: api/Posts/5
         [HttpDelete("{id}")]
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<IActionResult> DeletePost(long id)
@@ -129,6 +120,51 @@ namespace WebApiDemoApp.Controllers
             await _context.SaveChangesAsync();
             // Return 
             return NoContent();
+        }
+
+        [HttpGet]
+        [Route("search")]
+        public async Task<ActionResult<IEnumerable<PostDTO>>> FilterPosts(string? title, string? body)
+        {
+            IQueryable<Post> posts = _context.Posts;
+            // Look for string in title or body
+            if (!string.IsNullOrEmpty(title))
+            {
+                posts = posts.Where(x => x.Title.Contains(title));
+            }
+            if (!string.IsNullOrEmpty(body))
+            {
+                posts = posts.Where(x => x.Body.Contains(body));
+            }
+            // If no one element found
+            if (posts.Count() == 0)
+            {
+                return Ok("No elements available.");
+            }
+
+            return Ok(posts);
+        }
+        // GET: api/Posts/user/{username}
+        [HttpGet("user/{username}")]
+        public async Task<ActionResult<IEnumerable<PostDTO>>> GetUserPosts(string username)
+        {
+            var user = _context.Users.FirstOrDefault(u => u.UserName == username);
+            if (user == null)
+            {
+                return NotFound();
+            }
+            // Get all Posts of a specific Author
+            var posts = await _context.Posts
+                .Where(p => p.AuthorId == user.Id)
+                .Select(x => PostDTO(x))
+                .ToListAsync();
+
+            if (posts.Count == 0)
+            {
+                return Ok("No elements available."); // 200 Custom message
+            }
+
+            return Ok(posts);
         }
 
         private bool PostExists(long id)

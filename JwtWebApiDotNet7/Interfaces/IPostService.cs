@@ -7,7 +7,8 @@ namespace WebApiDemoApp.Interfaces
     {
         Task<IEnumerable<PostDTO>> GetAllPosts();
         Task<PostDTO> GetPostById(long id);
-        Task<IActionResult> DeletePost(PostDTO post);
-
+        Task DeletePostById(long id);
+        //Task<bool> UpdatePostAsync(long id, PostDTO postDTO, User? user);
+        Task<bool> UpdatePostById(long id, PostDTO postDTO, string userId);
     }
 }

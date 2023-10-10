@@ -7,14 +7,14 @@ namespace WebApiDemoApp.Controllers
 
     [Route("api/[controller]")]
     [ApiController]
-    public class PostsController : ControllerBase
+    public class PostController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
         private readonly IPostService _postService;
 
 
-        public PostsController(ApplicationDbContext context, UserManager<User> userManager, IPostService postService)
+        public PostController(ApplicationDbContext context, UserManager<User> userManager, IPostService postService)
         {
             _context = context;
             _userManager = userManager;
@@ -50,41 +50,53 @@ namespace WebApiDemoApp.Controllers
 
         // PUT: api/Posts/5
         [HttpPut("{id}")]
-        [Authorize(AuthenticationSchemes = "Bearer")]
+        //[Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<IActionResult> PutPost(long id, PostDTO postDTO)
         {
             if (id != postDTO.PostId)
             {
                 return BadRequest();
             }
-            var post = await _postService.GetPostById(id);
-            if (post == null)
-            {
-                return NotFound();
-            }
 
             User? user = await GetUser();
 
-            // Update
-            post.Title = postDTO.Title;
-            post.Body = postDTO.Body;
-            post.AuthorId = user?.Id;
-            post.Updated = DateTime.Now;
-
-            try
+            // IPostService to Update the post
+            if (await _postService.UpdatePostById(id, postDTO, user?.Id))
             {
-                await _context.SaveChangesAsync();
-                return Ok(post);
+                return Ok(); // Successfully updated
             }
-            catch (DbUpdateConcurrencyException) when (!PostExists(id))
+            else
             {
-                return NotFound();
+                return NotFound(); // Post not found or failed to update
             }
         }
+            //var post = await _postService.GetPostById(id);
+            //if (post == null)
+            //{
+            //    return NotFound();
+            //}
+
+            //User? user = await GetUser();
+
+            //// Update
+            //post.Title = postDTO.Title;
+            //post.Body = postDTO.Body;
+            //post.AuthorId = user?.Id;
+            //post.Updated = DateTime.Now;
+
+            //try
+            //{
+            //    await _context.SaveChangesAsync();
+            //    return Ok(post);
+            //}
+            //catch (DbUpdateConcurrencyException) when (!PostExists(id))
+            //{
+            //    return NotFound();
+            //}
 
         // POST: api/Post
         [HttpPost]
-        [Authorize(AuthenticationSchemes = "Bearer")]
+        //[Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult<PostDTO>> PostPost(PostDTO postDTO)
         {
             User? user = await GetUser();
@@ -108,7 +120,7 @@ namespace WebApiDemoApp.Controllers
 
         // DELETE: api/Posts/5
         [HttpDelete("{id}")]
-        [Authorize(AuthenticationSchemes = "Bearer")]
+        //[Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<IActionResult> DeletePost(long id)
         {
             // Get the Post
@@ -120,9 +132,10 @@ namespace WebApiDemoApp.Controllers
             // Delete element
             //_context.Posts.Remove(post);
             //await _context.SaveChangesAsync();
-            await _postService.DeletePost(post);
+            //await _postService.DeletePost(post);
+            await _postService.DeletePostById(id);
             // Return 
-            return NoContent();
+            return Ok();
         }
 
         [HttpGet]

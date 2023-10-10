@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApiDemoApp.Interfaces;
+using WebApiDemoApp.Models;
 
 namespace WebApiDemoApp.Services
 {
@@ -12,31 +13,67 @@ namespace WebApiDemoApp.Services
         }
         public async Task<IEnumerable<PostDTO>>? GetAllPosts()
         {
-            var posts = await _context.Posts
+            return await _context.Posts
                 .Select(x => PostDTO(x))
                 .ToListAsync();
-
-            return posts;
         }
+        /// 
+        /// 
         public async Task<PostDTO> GetPostById(long id)
         {
             var post = await _context.Posts.FindAsync(id);
-
             return PostDTO(post);
         }
-        public async void DeletePost(Post post)
+        public async Task DeletePostById(long id)
         {
             // Delete element
-            _context.Posts.Remove(post); 
+            var post = await _context.Posts.FindAsync(id);
+            _context.Posts.Remove(post);
             await _context.SaveChangesAsync();
         }
 
+        //public async Task<bool> UpdatePostAsync(long id, PostDTO postDTO, User? user)
+        //{
+        //    var post = await _context.Posts.FindAsync(id);
+        //    if (post == null)
+        //    {
+        //        return false;
+        //    }
 
+        //    // Update the post entity
+        //    post.Title = postDTO.Title;
+        //    post.Body = postDTO.Body;
+        //    post.AuthorId = user?.Id;
+        //    post.Updated = DateTime.Now;
 
+        //    try
+        //    {
+        //        await _context.SaveChangesAsync();
+        //        return true;
+        //    }
+        //    catch (DbUpdateConcurrencyException)
+        //    {
+        //        // Handle concurrency conflict if necessary
+        //        return false;
+        //    }
+        //}
+        public async Task<bool> UpdatePostById(long id, PostDTO postDTO, string userId)
+        {
+            var post = await _context.Posts.FindAsync(id);
+            if (post == null)
+            {
+                return false;
+            }
 
-        // Delete element
-        //_context.Posts.Remove(post);
-        //await _context.SaveChangesAsync();
+            // Update the post entity
+            post.Title = postDTO.Title;
+            post.Body = postDTO.Body;
+            post.AuthorId = userId;
+            post.Updated = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
 
         private static PostDTO PostDTO(Post post) =>
         new()

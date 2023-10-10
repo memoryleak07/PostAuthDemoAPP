@@ -3,10 +3,12 @@ global using Microsoft.EntityFrameworkCore;
 global using WebApiDemoApp.Data;
 global using WebApiDemoApp.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
 using System.Text;
+using WebApiDemoApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +53,10 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
+
+// My Services
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<AuthService>();
 
 
 var app = builder.Build();

@@ -12,8 +12,8 @@ using WebApiDemoApp.Data;
 namespace WebApiDemoApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20231008192745_AddRoles5")]
-    partial class AddRoles5
+    [Migration("20231009144732_Post")]
+    partial class Post
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -54,21 +54,21 @@ namespace WebApiDemoApp.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "e84925c0-8d0d-494f-a5bc-3b63e280f108",
+                            Id = "6ddd356b-7894-4ad0-ba46-9db396e6dfe9",
                             ConcurrencyStamp = "1",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "88b58d0a-0886-4d6e-bc31-01377b4a0b94",
+                            Id = "cf8af5ea-fba6-414a-b5aa-df38300c1b7c",
                             ConcurrencyStamp = "2",
                             Name = "User",
                             NormalizedName = "USER"
                         },
                         new
                         {
-                            Id = "cea6a8f3-81e1-4d50-8881-2ce69aeb5bdb",
+                            Id = "6b1ceedb-4660-4cd6-b3ed-7c6f37e610df",
                             ConcurrencyStamp = "3",
                             Name = "Member",
                             NormalizedName = "MEMBER"

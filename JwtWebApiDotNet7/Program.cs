@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
 using System.Text;
+using WebApiDemoApp.Interfaces;
 using WebApiDemoApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -55,7 +56,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 
 // My Services
-builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<AuthService>();
 
 

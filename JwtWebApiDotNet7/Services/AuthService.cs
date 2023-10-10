@@ -9,6 +9,10 @@ namespace WebApiDemoApp.Services
     {
         private readonly IConfiguration _configuration;
 
+        public AuthService(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
         public AuthService()
         {
             var builder = new ConfigurationBuilder()
@@ -20,8 +24,7 @@ namespace WebApiDemoApp.Services
 
         public string GetTokenKey()
         {
-            var tokenKey = _configuration["AppSettings:Token"];
-            return tokenKey;
+            return _configuration["AppSettings:Token"];
         }
         // Create Token
         public string CreateToken(string userName, string roleName)

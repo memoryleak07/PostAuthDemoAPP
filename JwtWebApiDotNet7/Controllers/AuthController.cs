@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApiDemoApp.Interfaces;
 using WebApiDemoApp.Services;
 
 namespace WebApiDemoApp.Controllers
@@ -12,10 +13,10 @@ namespace WebApiDemoApp.Controllers
         //private readonly ApplicationDbContext _context;
         //private readonly IConfiguration _configuration;
         //private readonly UserManager<User> _userManager;
-        private readonly UserService _userService;
+        private readonly IUserService _userService;
 
 
-        public AuthController(/*IConfiguration configuration, ApplicationDbContext context, UserManager<User> userManager, */UserService userService)
+        public AuthController(/*IConfiguration configuration, ApplicationDbContext context, UserManager<User> userManager, */IUserService userService)
         {
             //_configuration = configuration;
             //_context = context;

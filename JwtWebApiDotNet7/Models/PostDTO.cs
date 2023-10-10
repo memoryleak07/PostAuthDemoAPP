@@ -11,6 +11,6 @@ namespace WebApiDemoApp.Models
         public string? AuthorId { get; set; }
         //public User? Author { get; set; }
         public DateTime Updated { get; set; }
-
+        public object Content { get; internal set; }
     }
 }

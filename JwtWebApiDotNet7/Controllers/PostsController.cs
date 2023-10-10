@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApiDemoApp.Interfaces;
 
 namespace WebApiDemoApp.Controllers
 {
@@ -10,66 +11,41 @@ namespace WebApiDemoApp.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
+        private readonly IPostService _postService;
 
-        public PostsController(ApplicationDbContext context, UserManager<User> userManager)
+
+        public PostsController(ApplicationDbContext context, UserManager<User> userManager, IPostService postService)
         {
             _context = context;
             _userManager = userManager;
+            _postService = postService;
         }
-        //Test Role
-        [HttpGet("TestRole")]
-        [Authorize(AuthenticationSchemes = "Bearer")]
-        public async Task<ActionResult<IEnumerable<PostDTO>>> GetRole()
-        {
-            // Get the current user
-            User? user = await GetUser();
-
-            if (user == null)
-            {
-                return NotFound("User not found.");
-            }
-
-            // Check if the user is in the "Admin" role (or any other role you want to check)
-            bool isInAdminRole = await _userManager.IsInRoleAsync(user, "Admin");
-
-            if (isInAdminRole)
-            {
-                return Ok("User is in the 'Admin' role.");
-            }
-            else
-            {
-                return Ok("User is not in the 'Admin' role.");
-            }
-        }
-
         // GET: api/Posts/
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PostDTO>>> GetAllPost()
         {
-            var posts = await _context.Posts
-                .Select(x => PostDTO(x))
-                .ToListAsync();
-
-            if (posts.Count == 0)
+            //var posts1 = await _context.Posts
+            //    .Select(x => PostDTO(x))
+            //    .ToListAsync();
+            var posts = await _postService.GetAllPosts();
+            if (posts.Count() == 0)
             {
-                return Ok("No elements available."); // 200 Custom message
+                return NotFound();
             }
-
-            return posts;
+            return Ok(posts);
         }
 
         // GET: api/Posts/5
         [HttpGet("{id}")]
         public async Task<ActionResult<PostDTO>> GetPost(long id)
         {
-            var post = await _context.Posts.FindAsync(id);
-
+            //var post = await _context.Posts.FindAsync(id);
+            var post = await _postService.GetPostById(id);
             if (post == null)
             {
                 return NotFound();
             }
-
-            return PostDTO(post);
+            return Ok(post);
         }
 
         // PUT: api/Posts/5
@@ -81,7 +57,7 @@ namespace WebApiDemoApp.Controllers
             {
                 return BadRequest();
             }
-            Post? post = await _context.Posts.FindAsync(id);
+            var post = await _postService.GetPostById(id);
             if (post == null)
             {
                 return NotFound();
@@ -136,14 +112,15 @@ namespace WebApiDemoApp.Controllers
         public async Task<IActionResult> DeletePost(long id)
         {
             // Get the Post
-            var post = await _context.Posts.FindAsync(id);
+            PostDTO? post = await _postService.GetPostById(id);
             if (post == null)
             {
                 return NotFound();
             }
             // Delete element
-            _context.Posts.Remove(post);
-            await _context.SaveChangesAsync();
+            //_context.Posts.Remove(post);
+            //await _context.SaveChangesAsync();
+            await _postService.DeletePost(post);
             // Return 
             return NoContent();
         }
@@ -195,7 +172,7 @@ namespace WebApiDemoApp.Controllers
 
         private async Task<User>? GetUser()
         {
-            User? user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == HttpContext.User.Identity.Name.ToString());
+            User? user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == HttpContext.User.Identity.Name);
             return user;
         }
 
@@ -217,18 +194,28 @@ namespace WebApiDemoApp.Controllers
 }
 
 
-//if (user == null)
+//Test Role
+//[HttpGet("TestRole")]
+//[Authorize(AuthenticationSchemes = "Bearer")]
+//public async Task<ActionResult<IEnumerable<PostDTO>>> GetRole()
 //{
-//    return Unauthorized("You are not authenticated.");
-//}
-//// Get the user's identity
-//var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
-//// Get the user's Name
-//var userUsername = userIdentity.FindFirst(ClaimTypes.Name)?.Value;
+//    // Get the current user
+//    User? user = await GetUser();
 
+//    if (user == null)
+//    {
+//        return NotFound("User not found.");
+//    }
 
-// Automatically set the Author 
-//if (!string.IsNullOrEmpty(user))
-//{
-//    post.Author = user;
+//    // Check if the user is in the "Admin" role (or any other role you want to check)
+//    bool isInAdminRole = await _userManager.IsInRoleAsync(user, "Admin");
+
+//    if (isInAdminRole)
+//    {
+//        return Ok("User is in the 'Admin' role.");
+//    }
+//    else
+//    {
+//        return Ok("User is not in the 'Admin' role.");
+//    }
 //}

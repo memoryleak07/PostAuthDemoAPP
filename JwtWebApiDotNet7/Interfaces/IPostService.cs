@@ -1,14 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-
-namespace WebApiDemoApp.Interfaces
+﻿namespace WebApiDemoApp.Interfaces
 {
     public interface IPostService
     {
-        Task<IEnumerable<PostDTO>> GetAllPosts();
-        Task<PostDTO> GetPostById(long id);
+        Task<List<Post>> GetAllPosts();
+        Task<Post>? GetPostById(long id);
+        Task<List<Post>>? GetPostsByAuthorId(string name);
+        Task CreatePost(Post post);
+        Task UpdatePost();
         Task DeletePostById(long id);
-        //Task<bool> UpdatePostAsync(long id, PostDTO postDTO, User? user);
-        Task<bool> UpdatePostById(long id, PostDTO postDTO, string userId);
+        Task<List<Post>> FilterPosts(string? title, string? body, List<Post> posts);
+        bool PostIdExists(long id);
     }
 }

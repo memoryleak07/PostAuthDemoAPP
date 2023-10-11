@@ -21,7 +21,8 @@ namespace WebApiDemoApp.Services
 
         public async Task<User>? GetUserByUserName(string userName)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.UserName == userName);
+            var user = await _context.Users.FindAsync(u => u.UserName == userName);
+            return user;
         }
 
 

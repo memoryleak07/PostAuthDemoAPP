@@ -10,28 +10,26 @@ namespace WebApiDemoApp.Controllers
     public class PostController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        private readonly UserManager<User> _userManager;
         private readonly IPostService _postService;
+        private readonly IUserService _userService;
 
 
-        public PostController(ApplicationDbContext context, UserManager<User> userManager, IPostService postService)
+        public PostController(ApplicationDbContext context, IPostService postService, IUserService userService)
         {
             _context = context;
-            _userManager = userManager;
             _postService = postService;
+            _userService = userService;
         }
         // GET: api/Posts/
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PostDTO>>> GetAllPost()
         {
-            //var posts1 = await _context.Posts
-            //    .Select(x => PostDTO(x))
-            //    .ToListAsync();
             var posts = await _postService.GetAllPosts();
             if (posts.Count() == 0)
             {
                 return NotFound();
             }
+
             return Ok(posts);
         }
 
@@ -39,7 +37,6 @@ namespace WebApiDemoApp.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<PostDTO>> GetPost(long id)
         {
-            //var post = await _context.Posts.FindAsync(id);
             var post = await _postService.GetPostById(id);
             if (post == null)
             {
@@ -50,54 +47,37 @@ namespace WebApiDemoApp.Controllers
 
         // PUT: api/Posts/5
         [HttpPut("{id}")]
-        //[Authorize(AuthenticationSchemes = "Bearer")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<IActionResult> PutPost(long id, PostDTO postDTO)
         {
-            if (id != postDTO.PostId)
+            // Get Post by Id
+            var post = await _postService.GetPostById(id);
+            if (post == null)
             {
-                return BadRequest();
+                return NotFound();
             }
-
-            User? user = await GetUser();
-
-            // IPostService to Update the post
-            if (await _postService.UpdatePostById(id, postDTO, user?.Id))
-            {
-                return Ok(); // Successfully updated
-            }
-            else
-            {
-                return NotFound(); // Post not found or failed to update
-            }
-        }
-            //var post = await _postService.GetPostById(id);
-            //if (post == null)
-            //{
-            //    return NotFound();
-            //}
-
+            // Get the current User
             //User? user = await GetUser();
+            var user = _userService.GetUserByUserName(HttpContext.User.Identity.Name);
+            if (user == null)
+            {
+                return NotFound();
+            }
+            // Update Post
+            post.PostId = id;
+            post.Title = postDTO.Title;
+            post.Body = postDTO.Body;
+            post.AuthorId = "test";
+            post.Updated = DateTime.Now;
+            // Update database
+            await _postService.UpdatePost();
 
-            //// Update
-            //post.Title = postDTO.Title;
-            //post.Body = postDTO.Body;
-            //post.AuthorId = user?.Id;
-            //post.Updated = DateTime.Now;
-
-            //try
-            //{
-            //    await _context.SaveChangesAsync();
-            //    return Ok(post);
-            //}
-            //catch (DbUpdateConcurrencyException) when (!PostExists(id))
-            //{
-            //    return NotFound();
-            //}
-
+            return Ok(post);
+        }
         // POST: api/Post
         [HttpPost]
         //[Authorize(AuthenticationSchemes = "Bearer")]
-        public async Task<ActionResult<PostDTO>> PostPost(PostDTO postDTO)
+        public async Task<IActionResult> PostPost(PostDTO postDTO)
         {
             User? user = await GetUser();
             // Create PostItem obj
@@ -109,13 +89,9 @@ namespace WebApiDemoApp.Controllers
                 Updated = DateTime.Now, // Automatically set Datetime
             };
             // Save to db
-            _context.Posts.Add(post);
-            await _context.SaveChangesAsync();
-            // Create HTTP success response 
-            return CreatedAtAction(
-                nameof(GetPost),
-                new { id = post.PostId },
-                PostDTO(post));
+            await _postService.CreatePost(post);
+     
+            return Ok(post);
         }
 
         // DELETE: api/Posts/5
@@ -124,17 +100,14 @@ namespace WebApiDemoApp.Controllers
         public async Task<IActionResult> DeletePost(long id)
         {
             // Get the Post
-            PostDTO? post = await _postService.GetPostById(id);
+            var post = await _postService.GetPostById(id);
             if (post == null)
             {
                 return NotFound();
             }
-            // Delete element
-            //_context.Posts.Remove(post);
-            //await _context.SaveChangesAsync();
-            //await _postService.DeletePost(post);
+            // Delete element by PK Id
             await _postService.DeletePostById(id);
-            // Return 
+
             return Ok();
         }
 
@@ -142,23 +115,17 @@ namespace WebApiDemoApp.Controllers
         [Route("search")]
         public async Task<ActionResult<IEnumerable<PostDTO>>> FilterPosts(string? title, string? body)
         {
-            IQueryable<Post> posts = _context.Posts;
-            // Look for string in title or body
-            if (!string.IsNullOrEmpty(title))
-            {
-                posts = posts.Where(x => x.Title.Contains(title));
-            }
-            if (!string.IsNullOrEmpty(body))
-            {
-                posts = posts.Where(x => x.Body.Contains(body));
-            }
+            var posts = await _postService.GetAllPosts();
+
+            List<Post> filteredPosts = await _postService.FilterPosts(title, body, posts);
+
             // If no one element found
-            if (posts.Count() == 0)
+            if (filteredPosts.Count() == 0)
             {
                 return Ok("No elements available.");
             }
 
-            return Ok(posts);
+            return Ok(filteredPosts);
         }
         // GET: api/Posts/user/{username}
         [HttpGet("user/{username}")]
@@ -170,10 +137,7 @@ namespace WebApiDemoApp.Controllers
                 return NotFound();
             }
             // Get all Posts of a specific Author
-            var posts = await _context.Posts
-                .Where(p => p.AuthorId == user.Id)
-                .Select(x => PostDTO(x))
-                .ToListAsync();
+            var posts = await _postService.GetPostsByAuthorId(user.Id);
 
             if (posts.Count == 0)
             {
@@ -189,20 +153,20 @@ namespace WebApiDemoApp.Controllers
             return user;
         }
 
-        private bool PostExists(long id)
-        {
-            return _context.Posts.Any(e => e.PostId == id);
-        }
+        //private bool PostExists(long id)
+        //{
+        //    return _context.Posts.Any(e => e.PostId == id);
+        //}
 
-        private static PostDTO PostDTO(Post post) =>
-           new()
-           {
-               PostId = post.PostId,
-               Title = post.Title,
-               Body = post.Body,
-               AuthorId = post.AuthorId,
-               Updated = post.Updated,
-           };
+        //private static PostDTO PostDTO(Post post) =>
+        //   new()
+        //   {
+        //       PostId = post.PostId,
+        //       Title = post.Title,
+        //       Body = post.Body,
+        //       AuthorId = post.AuthorId,
+        //       Updated = post.Updated,
+        //   };
     }
 }
 

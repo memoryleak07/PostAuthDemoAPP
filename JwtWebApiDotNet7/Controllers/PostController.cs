@@ -9,14 +9,11 @@ namespace WebApiDemoApp.Controllers
     [ApiController]
     public class PostController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
         private readonly IPostService _postService;
         private readonly IUserService _userService;
 
-
-        public PostController(ApplicationDbContext context, IPostService postService, IUserService userService)
+        public PostController(IPostService postService, IUserService userService)
         {
-            _context = context;
             _postService = postService;
             _userService = userService;
         }
@@ -25,14 +22,13 @@ namespace WebApiDemoApp.Controllers
         public async Task<ActionResult<IEnumerable<PostDTO>>> GetAllPost()
         {
             var posts = await _postService.GetAllPosts();
-            if (posts.Count() == 0)
+            if (posts.Count == 0)
             {
                 return NotFound();
             }
 
             return Ok(posts);
         }
-
         // GET: api/Posts/5
         [HttpGet("{id}")]
         public async Task<ActionResult<PostDTO>> GetPost(long id)
@@ -44,7 +40,6 @@ namespace WebApiDemoApp.Controllers
             }
             return Ok(post);
         }
-
         // PUT: api/Posts/5
         [HttpPut("{id}")]
         [Authorize(AuthenticationSchemes = "Bearer")]
@@ -57,9 +52,8 @@ namespace WebApiDemoApp.Controllers
                 return NotFound();
             }
             // Get the current User
-            //User? user = await GetUser();
-            var user = _userService.GetUserByUserName(HttpContext.User.Identity.Name);
-            if (user == null)
+            var currentUser = await _userService.GetUserByUserName(HttpContext.User.Identity.Name);
+            if (currentUser == null)
             {
                 return NotFound();
             }
@@ -67,7 +61,7 @@ namespace WebApiDemoApp.Controllers
             post.PostId = id;
             post.Title = postDTO.Title;
             post.Body = postDTO.Body;
-            post.AuthorId = "test";
+            post.AuthorId = currentUser.Id;
             post.Updated = DateTime.Now;
             // Update database
             await _postService.UpdatePost();
@@ -79,13 +73,13 @@ namespace WebApiDemoApp.Controllers
         //[Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<IActionResult> PostPost(PostDTO postDTO)
         {
-            User? user = await GetUser();
+            var currentUser = await _userService.GetUserByUserName(HttpContext.User.Identity.Name);
             // Create PostItem obj
             var post = new Post
             {
                 Title = postDTO.Title,
                 Body = postDTO.Body,
-                AuthorId = user?.Id,
+                AuthorId = currentUser?.Id,
                 Updated = DateTime.Now, // Automatically set Datetime
             };
             // Save to db
@@ -93,7 +87,6 @@ namespace WebApiDemoApp.Controllers
      
             return Ok(post);
         }
-
         // DELETE: api/Posts/5
         [HttpDelete("{id}")]
         //[Authorize(AuthenticationSchemes = "Bearer")]
@@ -110,7 +103,7 @@ namespace WebApiDemoApp.Controllers
 
             return Ok();
         }
-
+        // GET: api/Post/search?title=Title&body=Body
         [HttpGet]
         [Route("search")]
         public async Task<ActionResult<IEnumerable<PostDTO>>> FilterPosts(string? title, string? body)
@@ -120,7 +113,7 @@ namespace WebApiDemoApp.Controllers
             List<Post> filteredPosts = await _postService.FilterPosts(title, body, posts);
 
             // If no one element found
-            if (filteredPosts.Count() == 0)
+            if (filteredPosts.Count == 0)
             {
                 return Ok("No elements available.");
             }
@@ -131,7 +124,7 @@ namespace WebApiDemoApp.Controllers
         [HttpGet("user/{username}")]
         public async Task<ActionResult<IEnumerable<PostDTO>>> GetUserPosts(string username)
         {
-            var user = _context.Users.FirstOrDefault(u => u.UserName == username);
+            var user = await _userService.GetUserByUserName(username);
             if (user == null)
             {
                 return NotFound();
@@ -146,27 +139,6 @@ namespace WebApiDemoApp.Controllers
 
             return Ok(posts);
         }
-
-        private async Task<User>? GetUser()
-        {
-            User? user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == HttpContext.User.Identity.Name);
-            return user;
-        }
-
-        //private bool PostExists(long id)
-        //{
-        //    return _context.Posts.Any(e => e.PostId == id);
-        //}
-
-        //private static PostDTO PostDTO(Post post) =>
-        //   new()
-        //   {
-        //       PostId = post.PostId,
-        //       Title = post.Title,
-        //       Body = post.Body,
-        //       AuthorId = post.AuthorId,
-        //       Updated = post.Updated,
-        //   };
     }
 }
 
@@ -196,3 +168,26 @@ namespace WebApiDemoApp.Controllers
 //        return Ok("User is not in the 'Admin' role.");
 //    }
 //}
+
+
+
+//private async Task<User?> GetUser()
+//{
+//    User? user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == HttpContext.User.Identity.Name);
+//    return user;
+//}
+
+//private bool PostExists(long id)
+//{
+//    return _context.Posts.Any(e => e.PostId == id);
+//}
+
+//private static PostDTO PostDTO(Post post) =>
+//   new()
+//   {
+//       PostId = post.PostId,
+//       Title = post.Title,
+//       Body = post.Body,
+//       AuthorId = post.AuthorId,
+//       Updated = post.Updated,
+//   };

@@ -10,17 +10,10 @@ namespace WebApiDemoApp.Controllers
     public class AuthController : ControllerBase
     {
         public static User user = new();
-        //private readonly ApplicationDbContext _context;
-        //private readonly IConfiguration _configuration;
-        //private readonly UserManager<User> _userManager;
         private readonly IUserService _userService;
 
-
-        public AuthController(/*IConfiguration configuration, ApplicationDbContext context, UserManager<User> userManager, */IUserService userService)
+        public AuthController(IUserService userService)
         {
-            //_configuration = configuration;
-            //_context = context;
-            //_userManager = userManager;
             _userService = userService;
         }
         // Test method
@@ -36,8 +29,7 @@ namespace WebApiDemoApp.Controllers
         public async Task<ActionResult<User>> RegisterAsync(UserDTO request)
         {
             // Check if Username already exists
-            //var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserName == request.UserName);
-            User? existingUser = await _userService.GetUserByUserName(request.UserName);
+            var existingUser = await _userService.GetUserByUserName(request.UserName);
 
             if (existingUser != null)
             {
@@ -50,17 +42,10 @@ namespace WebApiDemoApp.Controllers
             };
 
             // Add the user to Db
-            //_context.Users.Add(user);
-            //await _context.SaveChangesAsync();
             await _userService.AddUser(user);
             // Assign Role
-            //var roleResult = await _userManager.AddToRoleAsync(user, "User");
-            //if (!roleResult.Succeeded)
-            //{
-            //    // Handle role assignment failure, if needed
-            //    return BadRequest("Failed to assign role to user.");
-            //}
             await _userService.AssignRoleToUser(user, "User");
+
             return Ok(user);
         }
         // Login
@@ -68,13 +53,12 @@ namespace WebApiDemoApp.Controllers
         public async Task<ActionResult<User>> LoginAsync(UserDTO request)
         {
             // Find the user
-            //var user = _context.Users.FirstOrDefault(u => u.UserName == request.UserName);
             User? user = await _userService.GetUserByUserName(request.UserName);
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.PasswordHash, user.PasswordHash))
             {
                 return BadRequest("Wrong credentials.");
             }
-
+            // Generate JWT token
             AuthService authService = new();
 
             string token = authService.CreateToken(user.UserName, "User");

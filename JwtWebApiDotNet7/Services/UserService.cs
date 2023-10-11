@@ -19,12 +19,11 @@ namespace WebApiDemoApp.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<User>? GetUserByUserName(string userName)
+        public async Task<User?> GetUserByUserName(string userName)
         {
-            var user = await _context.Users.FindAsync(u => u.UserName == userName);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == userName);
             return user;
         }
-
 
         public async Task<bool> AssignRoleToUser(User user, string roleName)
         {
@@ -33,9 +32,11 @@ namespace WebApiDemoApp.Services
             if(!roleResult.Succeeded)
             {
                 return false;
-            } else
+            }
+            else
             {
                 return true;
+
             }
         }
     }
